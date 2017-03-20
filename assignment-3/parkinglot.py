@@ -9,9 +9,8 @@ from mininet.net import Mininet
 from mininet.log import lg, output
 from mininet.node import CPULimitedHost
 from mininet.link import TCLink
-from mininet.util import custom, quietRun, dumpNetConnections
+from mininet.util import custom, quietRun, dumpNetConnections, irange
 from mininet.cli import CLI
-
 from time import sleep, time
 from multiprocessing import Process
 from subprocess import Popen
@@ -69,7 +68,7 @@ lg.setLogLevel('info')
 class ParkingLotTopo(Topo):
     "Parking Lot Topology"
 
-    def __init__(self, n=1, cpu=.1, bw=10, delay=None,
+    def __init__(self, n=1 , cpu=.1, bw=10, delay=None,
                  max_queue_size=None, **params):
         """Parking lot topology with one receiver
            and n clients.
@@ -91,22 +90,32 @@ class ParkingLotTopo(Topo):
 
         # Switch ports 1:uplink 2:hostlink 3:downlink
         uplink, hostlink, downlink = 1, 2, 3
-
+`
         # The following template code creates a parking lot topology
         # for N = 1
         # TODO: Replace the template code to create a parking lot topology for any arbitrary N (>= 1)
         # Begin: Template code
-        s1 = self.addSwitch('s1')
-        h1 = self.addHost('h1', **hconfig)
+        connect_to = {"receiver" :receiver}
+        for i in irange(1, n):
+	        switch = self.addSwitch('s%i' %i )
+	        host = self.addHost('h%i' %i, **hconfig)
+	        # Wire up receiver
+	        if "receiver" in connect_to:
+		        self.addLink(connect_to["receiver"], switch,
+		                      port1=0, port2=uplink, **lconfig)
+		        del connect_to["receiver"]
+		    if "switch" in connect_to:
+		    	self.addLink(connect_to["switch"], switch, port1=downlink, \
+		    		port2=uplink, **lconfig)
 
-        # Wire up receiver
-        self.addLink(receiver, s1,
-                      port1=0, port2=uplink, **lconfig)
-
-        # Wire up clients:
-        self.addLink(h1, s1,
-                      port1=0, port2=hostlink, **lconfig)
-
+	        # Wire up clients:
+	        self.addLink(host, switch,
+	                      port1=0, port2=hostlink, **lconfig)
+	        if not "switch" in connect_to:
+	        	connect_to = {"switch": switch}
+	        else:
+	        	connect_to["switch"] = switch
+ 
         # Uncomment the next 8 lines to create a N = 3 parking lot topology
         #s2 = self.addSwitch('s2')
         #h2 = self.addHost('h2', **hconfig)
