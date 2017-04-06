@@ -89,33 +89,24 @@ class ParkingLotTopo(Topo):
         receiver = self.addHost('receiver')
 
         # Switch ports 1:uplink 2:hostlink 3:downlink
-        uplink, hostlink, downlink = 1, 2, 3
-`
+        uplink, hostlink, downlink, quadlink = 1, 2, 3, 4
         # The following template code creates a parking lot topology
         # for N = 1
         # TODO: Replace the template code to create a parking lot topology for any arbitrary N (>= 1)
+
         # Begin: Template code
-        connect_to = {"receiver" :receiver}
+        connect_to = {}
         for i in irange(1, n):
 	        switch = self.addSwitch('s%i' %i )
 	        host = self.addHost('h%i' %i, **hconfig)
-	        # Wire up receiver
-	        if "receiver" in connect_to:
-		        self.addLink(connect_to["receiver"], switch,
-		                      port1=0, port2=uplink, **lconfig)
-		        del connect_to["receiver"]
-		    if "switch" in connect_to:
-		    	self.addLink(connect_to["switch"], switch, port1=downlink, \
-		    		port2=uplink, **lconfig)
+	        self.addLink(host, switch, port1=quadlink, port2=hostlink, **lconfig)
+	        if "switch" in connect_to:
+	        	last_switch = connect_to["switch"]
+	        	self.addLink(last_switch, switch, port1=downlink, port2=uplink, **lconfig)
+	        connect_to["switch"] = switch
+        print connect_to["switch"], "last switch"
+        self.addLink(connect_to["switch"], receiver, port1=5, port2=quadlink, **lconfig)
 
-	        # Wire up clients:
-	        self.addLink(host, switch,
-	                      port1=0, port2=hostlink, **lconfig)
-	        if not "switch" in connect_to:
-	        	connect_to = {"switch": switch}
-	        else:
-	        	connect_to["switch"] = switch
- 
         # Uncomment the next 8 lines to create a N = 3 parking lot topology
         #s2 = self.addSwitch('s2')
         #h2 = self.addHost('h2', **hconfig)
